@@ -1,11 +1,14 @@
 from django.shortcuts import render
-from django.http import JsonResponse
-from django.contrib.auth import authenticate, login, logout
-from django.contrib.auth import authenticate, login, logout
 from django.http import JsonResponse, HttpResponse
+from django.contrib.auth import authenticate, login, logout
 from django.views.decorators.csrf import csrf_exempt
+from django.contrib.auth.decorators import login_required
+import json
 
-# ---------- HOME PAGE ----------
+
+# ------------------------------------------------
+# HOME PAGE
+# ------------------------------------------------
 def index(request):
     dealers = [
         {"name": "Best Cars", "city": "Hyderabad", "state": "Telangana"},
@@ -18,96 +21,176 @@ def index(request):
     })
 
 
-# ---------- API ENDPOINTS ----------
+# ------------------------------------------------
+# LOGIN API
+# ------------------------------------------------
 @csrf_exempt
 def login_user(request):
-    # 👉 HANDLE GET (browser access)
-    if request.method == "GET":
-        return HttpResponse(
-            "Login endpoint. Use POST with username and password.",
-            status=200
-        )
 
-    # 👉 HANDLE POST (curl / frontend)
+    if request.method == "GET":
+        return HttpResponse("Login endpoint — use POST")
+
     if request.method == "POST":
         username = request.POST.get("username")
         password = request.POST.get("password")
 
         user = authenticate(username=username, password=password)
-        if user is not None:
+
+        if user:
             login(request, user)
-            return JsonResponse({"status": "Authenticated", "user": username})
-        else:
-            return JsonResponse(
-                {"status": "Failed", "message": "Invalid credentials"},
-                status=401
-            )
+            return JsonResponse({
+                "status": "Authenticated",
+                "user": username
+            })
+
+        return JsonResponse({
+            "status": "Failed"
+        }, status=401)
+
+
+# ------------------------------------------------
+# LOGOUT API
+# ------------------------------------------------
 def logout_user(request):
     logout(request)
-    return JsonResponse({"status": "Logged out"})
-
-
-def get_dealers(request):
     return JsonResponse({
-        "dealers": [
-            {"id": 1, "name": "Best Cars", "city": "Hyderabad", "state": "Telangana"},
-            {"id": 2, "name": "Auto World", "city": "Bangalore", "state": "Karnataka"},
-        ]
+        "status": "Logged out",
+        "userName": ""
     })
 
 
-def get_dealers_by_state(request, state):
+# ------------------------------------------------
+# MOCK DEALER DATABASE (50 dealers)
+# ------------------------------------------------
+def generate_dealers():
+    dealers = []
+
+    for i in range(1, 51):
+        dealers.append({
+            "id": i,
+            "name": f"Dealer {i}",
+            "short_name": f"D{i}",
+            "address": f"{100+i} Main Street",
+            "city": "Kansas City",
+            "state": "Kansas",
+            "zip": "66101",
+            "lat": 39.0997 + i * 0.001,
+            "long": -94.5786 - i * 0.001
+        })
+
+    return dealers
+
+
+DEALERS = generate_dealers()
+
+
+# ------------------------------------------------
+# Q9 — FETCH ALL DEALERS
+# ------------------------------------------------
+def fetchDealers(request):
     return JsonResponse({
-        "dealers": [
-            {"id": 3, "name": "Kansas Cars", "city": "Wichita", "state": state}
-        ]
+        "status": 200,
+        "dealers": DEALERS
     })
 
 
-def get_dealer_details(request, dealer_id):
+# ------------------------------------------------
+# Q10 — FETCH SINGLE DEALER
+# ------------------------------------------------
+def fetchDealer(request, dealer_id):
+
+    dealer = next((d for d in DEALERS if d["id"] == dealer_id), None)
+
+    if dealer:
+        return JsonResponse({
+            "status": 200,
+            "dealer": dealer
+        })
+
+    return JsonResponse({"status": 404})
+
+
+# ------------------------------------------------
+# Q11 — FETCH DEALERS BY STATE
+# ------------------------------------------------
+def fetchDealersState(request, state):
+
+    filtered = [d for d in DEALERS if d["state"].lower() == state.lower()]
+
     return JsonResponse({
-        "id": dealer_id,
-        "name": "Best Cars",
-        "city": "Hyderabad",
-        "state": "Telangana"
+        "status": 200,
+        "dealers": filtered
     })
 
 
-def get_reviews(request, dealer_id):
-    return JsonResponse({
+# ------------------------------------------------
+# Q8 — REVIEWS
+# ------------------------------------------------
+def fetchReviews(request, dealer_id):
+
+    reviews = [{
         "dealer_id": dealer_id,
-        "reviews": []
-    })
+        "review": "Excellent service and friendly staff!",
+        "purchase": True,
+        "purchase_date": "2024-01-10",
+        "car_make": "Toyota",
+        "car_model": "Camry",
+        "sentiment": "positive"
+    }]
+
+    return JsonResponse({"reviews": reviews})
 
 
+# ------------------------------------------------
+# Q14 — CAR MAKES / MODELS
+# ------------------------------------------------
 def get_cars(request):
+
     return JsonResponse({
-        "CarMakes": [
-            {"id": 1, "name": "Toyota", "models": ["Corolla", "Camry"]},
-            {"id": 2, "name": "Honda", "models": ["Civic", "Accord"]}
+        "CarModels": [
+            {"make": "Toyota", "model": "Corolla", "year": 2021},
+            {"make": "Toyota", "model": "Camry", "year": 2022},
+            {"make": "Honda", "model": "Civic", "year": 2020},
+            {"make": "Honda", "model": "Accord", "year": 2021}
         ]
     })
-from django.shortcuts import render
-import requests
 
+
+# ------------------------------------------------
+# Q15 — SENTIMENT ANALYSIS (GET)
+# ------------------------------------------------
+def analyze(request, text):
+
+    text = text.lower()
+
+    if "fantastic" in text or "excellent" in text:
+        sentiment = "positive"
+    else:
+        sentiment = "neutral"
+
+    return JsonResponse({"sentiment": sentiment})
+
+
+# ------------------------------------------------
+# DEALER PAGE (UI)
+# ------------------------------------------------
 def dealer_page(request, dealer_id):
-    dealer_url = f"http://127.0.0.1:8000/djangoapp/get_dealer/{dealer_id}/"
-    reviews_url = f"http://127.0.0.1:8000/djangoapp/get_reviews/{dealer_id}"
 
-    dealer = requests.get(dealer_url).json()
-    reviews = requests.get(reviews_url).json().get("reviews", [])
+    dealer = next((d for d in DEALERS if d["id"] == dealer_id), None)
+    reviews = fetchReviews(request, dealer_id).json()["reviews"]
 
-    context = {
+    return render(request, "djangoapp/dealer_details.html", {
         "dealer": dealer,
         "reviews": reviews
-    }
+    })
 
-    return render(request, "djangoapp/dealer_details.html", context)
-from django.shortcuts import render
-from django.contrib.auth.decorators import login_required
 
+# ------------------------------------------------
+# ADD REVIEW PAGE
+# ------------------------------------------------
 @login_required
 def add_review(request, dealer_id):
-    return render(request, 'djangoapp/add_review.html', {
-        'dealer_id': dealer_id
+
+    return render(request, "djangoapp/add_review.html", {
+        "dealer_id": dealer_id
     })

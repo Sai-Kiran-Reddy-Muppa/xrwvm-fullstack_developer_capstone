@@ -2,15 +2,31 @@ from django.urls import path
 from . import views
 
 urlpatterns = [
-    path('', views.index, name='index'),
 
+    # UI
+    path('', views.index, name='index'),
+    path('dealer/<int:dealer_id>/', views.dealer_page, name='dealer_page'),
+    path('add_review/<int:dealer_id>/', views.add_review, name='add_review'),
+
+    # Auth
     path('login/', views.login_user, name='login'),
     path('logout/', views.logout_user, name='logout'),
 
-    path('get_dealers/', views.get_dealers, name='get_dealers'),
-    path('get_dealers/<str:state>/', views.get_dealers_by_state, name='get_dealers_by_state'),
-    path('get_dealer/<int:dealer_id>/', views.get_dealer_details, name='get_dealer_details'),
+    # Q8
+    path('fetchReviews/dealer/<int:dealer_id>', views.fetchReviews),
 
-    # 🔴 THIS IS THE IMPORTANT ONE
-    path('add_review/<int:dealer_id>/', views.add_review, name='add_review'),
+    # Q9
+    path('fetchDealers', views.fetchDealers),
+
+    # Q10
+    path('fetchDealer/<int:dealer_id>', views.fetchDealer),
+
+    # Q11
+    path('fetchDealers/<str:state>', views.fetchDealersState),
+
+    # Q14
+    path('get_cars/', views.get_cars),
+
+    # Q15
+    path('analyze/<str:text>', views.analyze),
 ]
