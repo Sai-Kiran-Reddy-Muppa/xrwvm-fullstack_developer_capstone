@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Dealer Details</title>
+</head>
+<body>
+
+<h1>{{ dealer.name }}</h1>
+<p><b>City:</b> {{ dealer.city }}</p>
+<p><b>State:</b> {{ dealer.state }}</p>
+
+<hr>
+
+{% if user.is_authenticated %}
+<p>Logged in as: {{ user.username }}</p>
+<a href="#">Review Dealer</a>
+{% else %}
+<p>Not logged in</p>
+{% endif %}
+
+<hr>
+
+<h2>Reviews</h2>
+
+{% if reviews %}
+    <ul>
+    {% for review in reviews %}
+        <li>{{ review.review }}</li>
+    {% endfor %}
+    </ul>
+{% else %}
+    <p>No reviews yet.</p>
+{% endif %}
+
+</body>
+</html>

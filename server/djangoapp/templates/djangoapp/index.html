@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Dealerships</title>
+</head>
+<body>
+
+<h1>Dealerships</h1>
+
+{% if user.is_authenticated %}
+    <p><strong>Logged in as:</strong> {{ user.username }}</p>
+    <a href="#">Review Dealer</a>
+{% else %}
+    <p><strong>Not logged in</strong></p>
+{% endif %}
+
+<hr>
+
+<ul>
+{% for dealer in dealers %}
+    <li>
+        {{ dealer.name }} - {{ dealer.city }}, {{ dealer.state }}
+    </li>
+{% endfor %}
+</ul>
+
+</body>
+</html>

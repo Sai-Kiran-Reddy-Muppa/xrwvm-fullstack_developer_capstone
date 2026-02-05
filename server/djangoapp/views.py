@@ -1,65 +1,113 @@
-# Uncomment the required imports before adding the code
-
-# from django.shortcuts import render
-# from django.http import HttpResponseRedirect, HttpResponse
-# from django.contrib.auth.models import User
-# from django.shortcuts import get_object_or_404, render, redirect
-# from django.contrib.auth import logout
-# from django.contrib import messages
-# from datetime import datetime
-
+from django.shortcuts import render
 from django.http import JsonResponse
-from django.contrib.auth import login, authenticate
-import logging
-import json
+from django.contrib.auth import authenticate, login, logout
+from django.contrib.auth import authenticate, login, logout
+from django.http import JsonResponse, HttpResponse
 from django.views.decorators.csrf import csrf_exempt
-# from .populate import initiate
+
+# ---------- HOME PAGE ----------
+def index(request):
+    dealers = [
+        {"name": "Best Cars", "city": "Hyderabad", "state": "Telangana"},
+        {"name": "Auto World", "city": "Bangalore", "state": "Karnataka"},
+    ]
+
+    return render(request, "djangoapp/index.html", {
+        "dealers": dealers,
+        "user": request.user
+    })
 
 
-# Get an instance of a logger
-logger = logging.getLogger(__name__)
-
-
-# Create your views here.
-
-# Create a `login_request` view to handle sign in request
+# ---------- API ENDPOINTS ----------
 @csrf_exempt
 def login_user(request):
-    # Get username and password from request.POST dictionary
-    data = json.loads(request.body)
-    username = data['userName']
-    password = data['password']
-    # Try to check if provide credential can be authenticated
-    user = authenticate(username=username, password=password)
-    data = {"userName": username}
-    if user is not None:
-        # If user is valid, call login method to login current user
-        login(request, user)
-        data = {"userName": username, "status": "Authenticated"}
-    return JsonResponse(data)
+    # 👉 HANDLE GET (browser access)
+    if request.method == "GET":
+        return HttpResponse(
+            "Login endpoint. Use POST with username and password.",
+            status=200
+        )
 
-# Create a `logout_request` view to handle sign out request
-# def logout_request(request):
-# ...
+    # 👉 HANDLE POST (curl / frontend)
+    if request.method == "POST":
+        username = request.POST.get("username")
+        password = request.POST.get("password")
 
-# Create a `registration` view to handle sign up request
-# @csrf_exempt
-# def registration(request):
-# ...
+        user = authenticate(username=username, password=password)
+        if user is not None:
+            login(request, user)
+            return JsonResponse({"status": "Authenticated", "user": username})
+        else:
+            return JsonResponse(
+                {"status": "Failed", "message": "Invalid credentials"},
+                status=401
+            )
+def logout_user(request):
+    logout(request)
+    return JsonResponse({"status": "Logged out"})
 
-# # Update the `get_dealerships` view to render the index page with
-# a list of dealerships
-# def get_dealerships(request):
-# ...
 
-# Create a `get_dealer_reviews` view to render the reviews of a dealer
-# def get_dealer_reviews(request,dealer_id):
-# ...
+def get_dealers(request):
+    return JsonResponse({
+        "dealers": [
+            {"id": 1, "name": "Best Cars", "city": "Hyderabad", "state": "Telangana"},
+            {"id": 2, "name": "Auto World", "city": "Bangalore", "state": "Karnataka"},
+        ]
+    })
 
-# Create a `get_dealer_details` view to render the dealer details
-# def get_dealer_details(request, dealer_id):
-# ...
 
-# Create a `add_review` view to submit a review
-# def add_review(request):
-# ...
+def get_dealers_by_state(request, state):
+    return JsonResponse({
+        "dealers": [
+            {"id": 3, "name": "Kansas Cars", "city": "Wichita", "state": state}
+        ]
+    })
+
+
+def get_dealer_details(request, dealer_id):
+    return JsonResponse({
+        "id": dealer_id,
+        "name": "Best Cars",
+        "city": "Hyderabad",
+        "state": "Telangana"
+    })
+
+
+def get_reviews(request, dealer_id):
+    return JsonResponse({
+        "dealer_id": dealer_id,
+        "reviews": []
+    })
+
+
+def get_cars(request):
+    return JsonResponse({
+        "CarMakes": [
+            {"id": 1, "name": "Toyota", "models": ["Corolla", "Camry"]},
+            {"id": 2, "name": "Honda", "models": ["Civic", "Accord"]}
+        ]
+    })
+from django.shortcuts import render
+import requests
+
+def dealer_page(request, dealer_id):
+    dealer_url = f"http://127.0.0.1:8000/djangoapp/get_dealer/{dealer_id}/"
+    reviews_url = f"http://127.0.0.1:8000/djangoapp/get_reviews/{dealer_id}"
+
+    dealer = requests.get(dealer_url).json()
+    reviews = requests.get(reviews_url).json().get("reviews", [])
+
+    context = {
+        "dealer": dealer,
+        "reviews": reviews
+    }
+
+    return render(request, "djangoapp/dealer_details.html", context)
+from django.shortcuts import render
+from django.contrib.auth.decorators import login_required
+
+@login_required
+def add_review(request, dealer_id):
+    return render(request, 'djangoapp/add_review.html', {
+        'dealer_id': dealer_id
+    })
